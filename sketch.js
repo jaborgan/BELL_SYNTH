@@ -1,5 +1,31 @@
 // is working. !!
 
+//oscillator visualization integration:
+
+//variables
+let mic, osc;
+
+var analyzer;
+var numSamples = 1024;
+
+let frequency = 110;
+
+//===============
+// mode Select
+//===============
+//let inputMode = 0;
+
+//array of amplitude values (-1 to +1) over time
+var samples = [];
+var currentSource = "mic";
+
+let hueZ;
+
+// let frequency = 110;
+// let amp = 0.5;
+
+//original sketch:
+
 const akebonoFreqs = [
         18.0203, // index 0
         20.2271, //index 1
@@ -20,7 +46,7 @@ const akebonoFreqs = [
     288.3254,
     323.6344,
     342.8786,
-  // original A4 (440 now 432);
+  // original A4 (440 now 432hz);
     432.0, 484.9036, 576.7, 647.3, 685.8, 
     864.0, 969.8072, 1153.3017, 1294.5373, 1371.5145,
     1728.0, 1939.6144, 2306.6032, 2589.0747, 2743.0291,
@@ -63,9 +89,33 @@ const japaneseNoteNames = ['ロ', 'ハ', 'ニ', 'ホ', 'ヘ', 'イ', 'キ']; // 
 let octave = 2;
 let activeOscs = [];
 
+let noteIndx = 13;
+let noteBuffer = 0;
+
+let cnv2;
+
 function setup() {
-  createCanvas(550, 375);
-  textFont('monospace');
+  
+  createCanvas(550, 620);
+ 
+  
+  cnv2 = createGraphics(550, 620);
+  
+   textFont('monospace');
+  cnv2.textFont('monospace');
+  colorMode(HSL, 360, 100, 100, 100);
+  hueZ = 0;
+ 
+  textSize(16);
+  
+  analyzer = new p5.FFT(0.33, numSamples);
+  
+  //set up various inputs, toggle when T key is pressed
+  
+  mic = new p5.AudioIn();
+  
+  
+  
 }
 
 function keyPressed() {
@@ -81,6 +131,26 @@ function keyPressed() {
     playBellNote(3 + idx + octave * 5); 
     // There are 5 pentatonic notes per octave
   }
+  
+    if(keyCode == '37'){
+      if(noteBuffer == 0){
+        noteBuffer = 1;
+      } else if (noteBuffer == 1){
+        noteIndx = noteIndx - 1;
+      }
+     if(noteIndx < 0){
+       noteIndx = 0;
+      }
+     playBellNote(noteIndx);
+       }
+  
+   if(keyCode == '39'){
+     
+     
+     if(noteIndx > akebonoFreqs.length){
+       noteIndex = akebonoFreqs.length;
+     }
+   }
 }
 
 function playBellNote(i) {
@@ -113,7 +183,7 @@ function playBellNote(i) {
     envelopes.push(env);
 
     //stop oscillator after release (2400ms as per existing code)
-    setTimeout(() => osc.stop(), 2400);
+    setTimeout(() => osc.stop(), 6800);
   };
 
   // --1. fundamental freq (sin and saw)
@@ -125,7 +195,7 @@ function playBellNote(i) {
   const sawAmp = random(0.74, 0.92);
   createOscillator('saw', baseFreq, sawAmp);
 
-  // 2. square wave harmonics, rand chosen from 2x to 6x
+  // 2. square wave harmonix, rand chosen from 2x to 6x
 
   //create copy of ratios array to select from w/o duplication
   let availableSquareRatios = [...bellHarmonics.squareWaveRatios];
@@ -174,6 +244,7 @@ function playBellNote(i) {
   // Visual feedback
   let wn = getWesternNote(baseFreq); // function to convert to nearest MIDI note name
   let japanese = japaneseNoteNames[i % japaneseNoteNames.length];
+  
   drawInfo(baseFreq, wn, japanese);
 
 }
@@ -205,9 +276,9 @@ function playBellNote(i) {
 //handle positionds for ADSR curve
 let handles = [
     {x: 101, y: 300}, // attack
-    {x: 150, y: 180}, // decay
-    {x: 250, y: 220}, // sustain
-    {x: 400, y: 300} // release end
+    {x: 102, y: 170}, // decay
+    {x: 150, y: 270}, // sustain
+    {x: 200, y: 290} // release end
 ];
 let dragging = [-1, -1, -1, -1];
 let handleRadius = 12;
@@ -215,29 +286,104 @@ let handleRadius = 12;
 function draw() {
     //background(23, 128);
     fill(64, 128);
-    rect(0, height/2-70, width, height);
-    
-    stroke(255);
-    fill(128);
-    textSize(16);
-    text("graphical a.d.s.r. editor", 10, 20);
+    rect(0, 150, width, height);
 
-    // draw adsr curve as lines
+//drawInfo(baseFreq, wn, japanese);
+  
+  background(hueZ,90, 20, 20);
+  
+  //get buffer of 512 samples over time 
+  samples = analyzer.waveform();
+  var bufferLength = samples.length;
+  
+  //draw a snapshot of the samples
+  strokeWeight(100);
+  stroke(180-hueZ, 75, 75, 40);
+  noFill();
+  
+  //===================
+  // draw oscilloscope
+  //===================
+  
+  beginShape();
+  strokeWeight(random(0.25,1.25));
+  for(let i = 0; i < bufferLength; i++) {
+    var x = map(i, 0, bufferLength, 0, width);
+    var y = map(samples[i], -0.5, 0.5, -height/1.5, height/1.5);
+    //strokeWeight(1);
+    //vertex(x, y + height/2);
+    //adjustar y aqui para m,odificar efecto visual.
+    //
+    
+    line(width/2+y, height, width/2-y, 0);
+  }
+  endShape();
+  
+    beginShape();
+  strokeWeight(random(2, 7));
+  for(let i = 0; i < bufferLength; i++) {
+    var x = map(i, 0, bufferLength, 5, width-5);
+    var y = map(samples[i], -0.5, 0.5, -height/1.5+50, height/1.5-50);
+    
+    vertex(x, y + height/2);
+    //adjustar y aqui para m,odificar efecto visual.
+    
+    //line(width/2+y, height, width/2-y, 0);
+  }
+  endShape();
+  
+  //map oscillator frequency to mouse position
+  
+  //osc.freq(frequency, 0.1);
+  amp = map(mouseX, height, 0, 0, 1);
+  
+  if(hueZ >=360){
+  hueZ = hueZ - 360;
+  } else {
+  hueZ = hueZ + 0.2;
+}
+  let c = 1+sin(millis()/512)/2;
+  
+  for(i = 0; i<= 32; i++){
+    for(u = 0; u<=32; u++){
+      stroke(360-hueZ, 80, 25, 25);
+      
+      
+      strokeWeight(0.5*c);
+    line(map(i, 0, 32, 0, width), height, width/2-150+u*10, 0)
+    }
+  }
+  
+  
+  
+     stroke(255);
+    fill(255);
+    textSize(16);
+    text("~graphic a.d.s.r. editor~", width/2, 170);
+  textSize(11);
+  text("Attack = Sound Onset", width/2+50, 200);
+  text("Decay = Rate of Fall", width/2+50, 230);
+  text("Sustain = level maintained", width/2+50, 260);
+  text("Release = time to fade away", width/2+50, 290);
+  
+   // draw adsr curve as lines
     stroke(0);
-    strokeWeight(2);
+    strokeWeight(3);
     noFill();
-    textSize(8);
+    textSize(10);
     beginShape();
     for (let h of handles)  vertex(h.x, h.y);
     endShape();
 
     // draw drag handles
     for(let i=0; i<handles.length; i++) {
-        fill(dragging[i]==1 ? 'deeppink' : 'teal');
+        fill(dragging[i]==1 ? 'deeppink' : 'honeydew');
         stroke(0);
         ellipse(handles[i].x, handles[i].y, handleRadius * 2);
         //fill(0);
         text(['A', 'D', 'S', 'R'][i], handles[i].x-7, handles[i].y-15);
+      stroke(90, 100, 70);
+      fill(0, 0, 0, 50)
         text(`x:${handles[i].x}, y:${handles[i].y}`, handles[i].x-25, handles[i].y+25);
     }
 
@@ -246,19 +392,36 @@ function draw() {
     let decayTime = (handles[1].x - handles[0].x) / 100;
     let sustainLevel = 1 - (handles[2].y-180) / 100;
     let releaseTime = (handles[3].x - handles[2].x) / 10;
-    fill(255);
-    textSize(11);
+    stroke(0)
+    fill(0, 0, 75, 100);
+    textSize(14);
     text(`Attack: ${attackTime.toFixed(2)}s`, 10, 350);
     text(`Decay: ${decayTime.toFixed(2)}s`, 140, 350);
-    text(`Sustain: ${sustainLevel.toFixed(2)}`, 270, 350);
-    text(`Release: ${releaseTime.toFixed(2)}s`, 370, 350);
+    text(`Sustain: ${sustainLevel.toFixed(2)}`, 260, 350);
+    text(`Release: ${releaseTime.toFixed(2)}s`, 380, 350);
 
     gloAtk = attackTime;
     gloDec = decayTime;
     gloSus = sustainLevel;
     gloRel = releaseTime;
+  
+  //call text display;
+  labelStuff(frequency, amp);
+  image(cnv2, 0, 0);
+  
+}
 
-//drawInfo(baseFreq, wn, japanese);
+function labelStuff(frequency, amp) {
+  fill(0);
+  stroke(360);
+  // cnv2.text('T = Toggle', 20, 120);
+  // cnv2.text('Source: '+currentSource, 20, 40);
+  //if currentSource is oscillator
+  
+  if(currentSource === 'sine' || currentSource == 'triangle' || currentSource == 'sawtooth' || currentSource == 'square'){
+    cnv2.text('Frequency: '+frequency, 20, 60);
+     cnv2.text('Amplitude: '+ amp, 20, 80);
+  }
 }
 
 function mousePressed() {
@@ -281,12 +444,21 @@ function mouseReleased() { dragging = [-1, -1, -1, -1]; }
 
 function drawInfo(freq, wn, japanese) {
   //background(255);
-  fill(255, 200, 0, 155);
-  rect(35, 35, 350, 80, 25);
-  textSize(17);
-  text(`Frequency: ${freq.toFixed(4)} Hz`, 50, 50);
-  text(`Western Note: ${wn}`, 50, 70);
-  text(`katana not: [translate:${japanese}]`, 50, 90);
+  cnv2.textSize(17);
+  
+  cnv2.fill(hueZ, 25, 85, 44);
+  cnv2.rect(190, 35, 350, 80, 25);
+  
+  
+  cnv2.fill(0, 0, 0, 95);
+  cnv2.rect(225, 45, 230, 15, 10);
+  cnv2.rect(235, 65, 180, 15, 10);
+  cnv2.rect(245, 85, 250, 15, 10);
+  
+  cnv2.fill(360, 100, 100);
+  cnv2.text(`Frequency: ${freq.toFixed(4)} Hz`, 230, 60);
+  cnv2.text(`Western Note: ${wn}`, 240, 80);
+  cnv2.text(`katakana: [translate:${japanese}]`, 250, 99);
 }
 
 // Find approximate Western letter note
@@ -298,3 +470,9 @@ function getWesternNote(freq) {
   let octave = Math.floor(midi / 12) - 1;
   return `${note}${octave}`;
 }
+
+
+
+// function keyPressed() {
+//
+// }
