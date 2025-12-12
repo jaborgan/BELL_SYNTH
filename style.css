@@ -1,0 +1,83 @@
+/* Global dark background and base text */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #05060a;      /* very dark background */
+  color: #f5f5f5;                 /* light text */
+}
+
+/* Center everything vertically a bit */
+main, .app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 40px;
+}
+
+/* Title styling */
+h1#app-title {
+  font-family: "Courier New", Courier, monospace;
+  text-align: center;             /* center the heading text[web:89][web:95] */
+  font-size: 1.8rem;
+  letter-spacing: 0.05em;
+  margin: 0 0 16px;
+  color: #fefefe;
+}
+
+p {
+  font-family: "Courier New", Courier, monospace;
+}
+
+/* Optional subtitle / instructions under title */
+.subtitle {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #b0b4c0;
+  margin-bottom: 24px;
+}
+
+/* Canvas wrapper so the p5 canvas has a visible edge */
+.canvas-wrapper {
+  padding: 8px;
+  border-radius: 10px;
+  background: #10121a;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+}
+
+/* If p5.js injects a canvas directly into body */
+canvas {
+  display: block;
+  border-radius: 6px;
+}
+
+/* Simple styling for UI controls (sliders, buttons) */
+.controls {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+button,
+input[type="range"] {
+  cursor: pointer;
+}
+
+button {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #2d3242;
+  background: #1a1d29;
+  color: #f0f0f0;
+  font-size: 0.9rem;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+button:hover {
+  background: #232736;
+  transform: translateY(-1px);
+}
